@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Graverage Calculator</title>
+    <style>
+        body {
+            background-color: #f0f0f0;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        h1 {
+            margin-top: 5%;
+            text-align: center;
+            color: #333;
+        }
+
+        #pointCanvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #333;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        input[type="text"] {
+            width: 80%;
+            padding: 5px;
+            margin: 5px 0;
+            border: 1px solid #999;
+            border-radius: 3px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        button {
+            margin: 0 10px; /* Add some margin between the buttons */
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>The Graverage JavaScript Playground</h1>
+    <canvas id="pointCanvas" width="400" height="400"></canvas>
+    <label for="text">Enter your Graverage Sequence:</label>
+    <input type="text" name="gstr" id='gstr' placeholder="4 1 1 1 2 4 0 1 3 2 1 1 0 1 3 0 2 1 -1 1 0 1 3 1 2 2 0 1 1 1 3 2 0 0 0 1 2 3">
+    <label for="text">Set Execution Depth:</label>
+    <input type="text" name="execdep" id="execdep" placeholder="3" style="width: 10%;">
+    <div class="button-container">
+        <button onclick="clearCanvas()">Erase Canvas</button>
+        <button onclick="reDraw()">Recompute Graverage</button>
+    </div>
+
+    <footer style="text-align: center; margin-top: 20px;">
+        <p style="font-size: 16px; color: #444;">Created by ARYANTECH123</p>
+        <a href="https://github.com/your-github-username" style="font-size: 14px; color: #007bff; text-decoration: none;" target="_blank">
+            <i class="fab fa-github" style="margin-right: 5px;"></i>GitHub
+        </a>
+    </footer>
+
+    <script>
+        // utility functions
+        function transposeArray(arr) {
+            // Check if the input is a valid array of arrays
+            if (!Array.isArray(arr) || arr.length === 0 || !Array.isArray(arr[0])) {
+                return [];
+            }
+
+            const numRows = arr.length;
+            const numCols = arr[0].length;
+
+            // Create a new array with the transposed dimensions
+            const transposed = new Array(numCols);
+
+            for (let i = 0; i < numCols; i++) {
+                transposed[i] = new Array(numRows);
+            }
+
+            // Copy values from the original array to the transposed array
+            for (let i = 0; i < numRows; i++) {
+                for (let j = 0; j < numCols; j++) {
+                    transposed[j][i] = arr[i][j];
+                }
+            }
+
+            return transposed;
+        }
+
+
+        // Graverage code
+        function graverage(points, bags, instructions, execdepth) {
+            // Create a copy of the points array
+            const newPoints = [...points];
+
+            if (newPoints === -1) {
+                console.log("ERROR, division by 0, value " + bags);
+                return newPoints;
+            }
+
+            for (let i = 0; i < instructions.length * execdepth; i++) {
+                const instruction = instructions[i % instructions.length];
+                const bag = bags[instruction];
+                let newx = 0;
+                let newy = 0;
+                for (var point of bag) {
+                    newx += newPoints[point][0];
+                    newy += newPoints[point][1];
+                }
+
+                newx /= bag.length;
+                newy /= bag.length;
+
+                newPoints[instruction] = [newx, newy];
+            }
+
+            return newPoints;
+        }
+
+        function parseGraverageString(string) {
+            let intlist = string.split(" ");
+
+            intlist = intlist.reverse();
+
+            var points = [];
+            var bags = [];
+            var instructions = [];
+
+            var numpts = Number(intlist.pop());
+            console.log(numpts);
+            // Loop for each Point, finding its value and bag
+            for (var i = 1; i <= numpts; i++) {
+                var xnum = Number(intlist.pop());
+                var xden = Number(intlist.pop());
+                var ynum = Number(intlist.pop());
+                var yden = Number(intlist.pop());
+
+                points.push([xnum / xden, ynum / yden]);
+
+                var bagsize = Number(intlist.pop());
+                var bag = [];
+
+                for (var j = 0; j < bagsize; j++) {
+                    bag.push(Number(intlist.pop()));
+                }
+
+                bags.push(bag);
+
+            }
+
+            intlist = intlist.map(str => parseInt(str));
+            instructions = intlist.reverse();
+
+            return [points, bags, instructions];
+        }
+
+        // Computation: This funstion genetares paths/Trajectories based on finete executable Graverage strings
+        function genPaths(grStr, execdepth) {
+            // "4 1 1 1 2 4 0 1 3 2 1 1 0 1 3 0 2 1 -1 1 0 1 3 1 2 2 0 1 1 1 3 2 0 0 0 1 2 3"
+            var parsed = parseGraverageString(grStr);
+
+            // Initial point positions
+            var timeflow = [parsed[0]];
+
+            for (var i = 1; i <= execdepth; i++) {
+                timeflow.push(graverage(parsed[0], parsed[1], parsed[2], i));
+            }
+
+            // Converting point spcace to grid space with 400x400 canvas mapped to a +-1 XY plane
+            newtimeflow = [];
+
+            for (var i = 0; i < timeflow.length; i++) {
+                var timestamp = timeflow[i];
+                var newts = [];
+                for (var j = 0; j < timestamp.length; j++) {
+                    var po = timestamp[j];
+                    newts.push([(po[0] * 200) + 200, (po[1] * -200) + 200]);
+                }
+                newtimeflow.push(newts);
+            }
+            // Define an array of paths, each represented as an array of points
+            return transposeArray(newtimeflow);
+        }
+
+        // Function to draw a point on the canvas
+        function drawPoint(x, y) {
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Function to draw lines between points in a path
+        function drawPath(path) {
+            for (let i = 0; i < path.length - 1; i++) {
+                const startPoint = path[i];
+                const endPoint = path[i + 1];
+
+                // Draw a line between the current point and the next point
+                ctx.beginPath();
+                ctx.moveTo(startPoint[0], startPoint[1]);
+                ctx.lineTo(endPoint[0], endPoint[1]);
+                ctx.strokeStyle = 'blue';
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+
+        // Function to plot points and paths
+        function plotPaths(paths) {
+            for (const path of paths) {
+                for (const point of path) {
+                    drawPoint(point[0], point[1]);
+                }
+                drawPath(path);
+            }
+        }
+
+        // Active code
+//"4 1 1 1 2 4 0 1 3 2 1 1 0 1 3 0 2 1 -1 1 0 1 3 1 2 2 0 1 1 1 3 2 0 0 0 1 2 3"
+        const canvas = document.getElementById('pointCanvas');
+        const ctx = canvas.getContext('2d');        
+
+        paths = genPaths("4 1 1 1 2 4 0 1 3 2 1 1 0 1 3 0 2 1 -1 1 0 1 3 1 2 2 0 1 1 1 3 2 0 0 0 1 2 3", 3);
+
+
+
+
+
+        // Call the function to plot points and paths
+        plotPaths(paths);
+
+        // Function to clear the canvas
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function reDraw() {
+            const gstr = document.getElementById('gstr');
+            const text = gstr.value;
+            console.log(text);
+            const edep = Number(document.getElementById('execdep').value);
+            console.log(edep);
+            paths = genPaths(text, edep);
+            clearCanvas();
+            plotPaths(paths);
+            console.log(paths); 
+        }
+    </script>
+</body>
+
+</html>
